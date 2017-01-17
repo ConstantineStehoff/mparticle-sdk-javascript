@@ -243,38 +243,6 @@ function extend() {
     return target;
 }
 
-// function createXHR(cb) {
-//     var xhr;
-
-//     try {
-//         xhr = new window.XMLHttpRequest();
-//     }
-//     catch (e) {
-//         logDebug('Error creating XMLHttpRequest object.');
-//     }
-
-//     if (xhr && cb && "withCredentials" in xhr) {
-//         xhr.onreadystatechange = cb;
-//     }
-//     else if (typeof window.XDomainRequest != 'undefined') {
-//         logDebug('Creating XDomainRequest object');
-
-//         try {
-//             xhr = new window.XDomainRequest();
-//             xhr.onload = cb;
-//         }
-//         catch (e) {
-//             logDebug('Error creating XDomainRequest object');
-//         }
-//     }
-
-//     return xhr;
-// }
-
-// function isUIWebView() {
-//     return /(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/i.test(navigator.userAgent);
-// }
-
 function tryNativeSdk(path, value) {
     if (window.mParticleAndroid) {
         logDebug(InformationMessages.SendAndroid + path);
@@ -282,7 +250,7 @@ function tryNativeSdk(path, value) {
 
         return true;
     }
-    else if (window.mParticle.isIOS || isUIWebView()) {
+    else if (window.mParticle.isIOS || utilities.isUIWebView(navigator)) {
         logDebug(InformationMessages.SendIOS + path);
         var iframe = document.createElement("IFRAME");
         iframe.setAttribute("src", 'mp-sdk://' + path + '/' + value);
@@ -295,107 +263,6 @@ function tryNativeSdk(path, value) {
 
     return false;
 }
-
-// function getCookie() {
-//     var cookies = window.document.cookie.split('; '),
-//         key = Config.CookieName,
-//         i,
-//         l,
-//         parts,
-//         name,
-//         cookie,
-//         obj,
-//         result = key ? undefined : {};
-
-//     logDebug(InformationMessages.CookieSearch);
-
-//     for (i = 0, l = cookies.length; i < l; i++) {
-//         parts = cookies[i].split('=');
-//         name = decoded(parts.shift());
-//         cookie = decoded(parts.join('='));
-
-//         if (key && key === name) {
-//             result = converted(cookie);
-//             break;
-//         }
-
-//         if (!key) {
-//             result[name] = converted(cookie);
-//         }
-//     }
-
-//     if (result) {
-//         logDebug(InformationMessages.CookieFound);
-
-//         try {
-//             obj = JSON.parse(result);
-
-//             // Longer names are for backwards compatibility
-//             sessionId = obj.sid || obj.SessionId || sessionId;
-//             isEnabled = (typeof obj.ie != 'undefined') ? obj.ie : obj.IsEnabled;
-//             sessionAttributes = obj.sa || obj.SessionAttributes || sessionAttributes;
-//             userAttributes = obj.ua || obj.UserAttributes || userAttributes;
-//             userIdentities = obj.ui || obj.UserIdentities || userIdentities;
-//             serverSettings = obj.ss || obj.ServerSettings || serverSettings;
-//             devToken = obj.dt || obj.DeveloperToken || devToken;
-
-//             clientId = obj.cgid || generateUniqueId();
-
-//             if (isEnabled !== false || isEnabled !== true) {
-//                 isEnabled = true;
-//             }
-
-//             if (obj.les) {
-//                 lastEventSent = new Date(obj.les);
-//             }
-//             else if (obj.LastEventSent) {
-//                 lastEventSent = new Date(obj.LastEventSent);
-//             }
-//         }
-//         catch (e) {
-//             logDebug(ErrorMessages.CookieParseError);
-//         }
-//     }
-// }
-
-// function setCookie() {
-//     var date = new Date(),
-//         key = Config.CookieName,
-//         value = {
-//             sid: sessionId,
-//             ie: isEnabled,
-//             sa: sessionAttributes,
-//             ua: userAttributes,
-//             ui: userIdentities,
-//             ss: serverSettings,
-//             dt: devToken,
-//             les: lastEventSent ? lastEventSent.getTime() : null,
-//             av: appVersion,
-//             cgid: clientId
-//         },
-//         expires = new Date(date.getTime() +
-//             (Config.CookieExpiration * 24 * 60 * 60 * 1000)).toGMTString(),
-//         domain = Config.CookieDomain ? ';domain=' + Config.CookieDomain : '';
-
-//     logDebug(InformationMessages.CookieSet);
-
-//     window.document.cookie =
-//         encodeURIComponent(key) + '=' + encodeURIComponent(JSON.stringify(value)) +
-//         ';expires=' + expires +
-//         ';path=/' +
-//         domain;
-// }
-
-// function isWebViewEmbedded() {
-//     if ((window.external && typeof (window.external.Notify) === 'unknown')
-//         || window.mParticleAndroid
-//         || isUIWebView()
-//         || window.mParticle.isIOS) {
-//         return true;
-//     }
-
-//     return false;
-// }
 
 function send(event) {
     var xhr,
@@ -417,7 +284,7 @@ function send(event) {
     if (!tryNativeSdk(NativeSdkPaths.LogEvent, JSON.stringify(event))) {
         logDebug(InformationMessages.SendHttp);
         
-        xhr = createXHR(xhrCallback);
+        xhr = utilities.createXHR(xhrCallback, logDebug);
 
         if (xhr) {
             try {
@@ -438,7 +305,7 @@ function sendForwardingStats(forwarder, event) {
         forwardingStat;
 
     if (forwarder && forwarder.isVisible) {
-        xhr = createXHR();
+        xhr = utilities.createXHR(logDebug);
         forwardingStat = JSON.stringify({
             mid: forwarder.id,
             n: event.EventName,
@@ -548,7 +415,7 @@ function sendEventToForwarders(event) {
             MessageType.Commerce
         ];
 
-    if (!isWebViewEmbedded() && forwarders) {
+    if (!utilities.isWebViewEmbedded(navigator) && forwarders) {
         hashedName = generateHash(event.EventCategory + event.EventName);
         hashedType = generateHash(event.EventCategory);
 
@@ -644,7 +511,7 @@ function sendEventToForwarders(event) {
 }
 
 function initForwarders() {
-    if (!isWebViewEmbedded() && forwarders) {
+    if (!utilities.isWebViewEmbedded(navigator) && forwarders) {
 
         // Some js libraries require that they be loaded first, or last, etc
         forwarders.sort(function(x, y) {
@@ -902,7 +769,7 @@ function convertProductBagToDTO() {
             return convertProductToDTO(item);
         });
 
-        if (isWebViewEmbedded()) {
+        if (utilities.isWebViewEmbedded(navigator)) {
             convertedBag[prop] = {
                 ProductList: list
             };
@@ -1403,7 +1270,7 @@ function logCommerceEvent(commerceEvent, attrs) {
             mParticle.startNewSession();
         }
 
-        if (isWebViewEmbedded()) {
+        if (utilities.isWebViewEmbedded(navigator)) {
             // Don't send shopping cart or product bags to parent sdks
             commerceEvent.ShoppingCart = {};
             commerceEvent.ProductBags = {};
@@ -1534,7 +1401,7 @@ function mergeConfig(config) {
 }
 
 function canLog() {
-    if (isEnabled && (devToken || isWebViewEmbedded())) {
+    if (isEnabled && (devToken || utilities.isWebViewEmbedded(navigator))) {
         return true;
     }
 
@@ -2496,7 +2363,7 @@ var mParticle = {
 
                 cartProducts = cartProducts.concat(arrayCopy);
 
-                if (isWebViewEmbedded()) {
+                if (utilities.isWebViewEmbedded(navigator)) {
                     tryNativeSdk(NativeSdkPaths.AddToCart, JSON.stringify(arrayCopy));
                 }
                 else if (logEvent === true) {
@@ -2518,7 +2385,7 @@ var mParticle = {
                     if (cartIndex > -1) {
                         cartProducts.splice(cartIndex, 1);
 
-                        if (isWebViewEmbedded()) {
+                        if (utilities.isWebViewEmbedded(navigator)) {
                             tryNativeSdk(NativeSdkPaths.RemoveFromCart, JSON.stringify(cartItem));
                         }
                         else if (logEvent === true) {
