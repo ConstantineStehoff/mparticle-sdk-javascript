@@ -18,13 +18,13 @@
 
 import {utilities} from './utilities.js';
 import {cookie} from './cookie.js';
+import {messages} from './messages.js';
 
 var serviceUrl = "jssdk.mparticle.com/v1/JS/",
     secureServiceUrl = "jssdks.mparticle.com/v1/JS/",
     serviceScheme = window.location.protocol + '//',
     sdkVersion = '1.8.7',
     isEnabled = true,
-    pluses = /\+/g,
     sessionAttributes = {},
     userAttributes = {},
     userIdentities = [],
@@ -245,13 +245,13 @@ function extend() {
 
 function tryNativeSdk(path, value) {
     if (window.mParticleAndroid) {
-        logDebug(InformationMessages.SendAndroid + path);
+        utilities.logDebug(messages.getInformationMessages('SendAndroid') + path);
         window.mParticleAndroid[path](value);
 
         return true;
     }
     else if (window.mParticle.isIOS || utilities.isUIWebView(navigator)) {
-        logDebug(InformationMessages.SendIOS + path);
+        utilities.logDebug(messages.getInformationMessages('SendIOS') + path);
         var iframe = document.createElement("IFRAME");
         iframe.setAttribute("src", 'mp-sdk://' + path + '/' + value);
         document.documentElement.appendChild(iframe);
@@ -268,23 +268,23 @@ function send(event) {
     var xhr,
         xhrCallback = function() {
             if (xhr.readyState === 4) {
-                logDebug('Received ' + xhr.statusText + ' from server');
+                utilities.logDebug('Received ' + xhr.statusText + ' from server');
 
                 parseResponse(xhr.responseText);
             }
         };
 
-    logDebug(InformationMessages.SendBegin);
+    utilities.logDebug(messages.getInformationMessages('SendBegin'));
 
     if (!event) {
-        logDebug(ErrorMessages.EventEmpty);
+            utilities.logDebug(messages.getErrorMessages('EventEmpty'));
         return;
     }
 
     if (!tryNativeSdk(NativeSdkPaths.LogEvent, JSON.stringify(event))) {
-        logDebug(InformationMessages.SendHttp);
+        utilities.logDebug(messages.getInformationMessages('SendHttp'));
         
-        xhr = utilities.createXHR(xhrCallback, logDebug);
+        xhr = utilities.createXHR(xhrCallback);
 
         if (xhr) {
             try {
@@ -294,7 +294,7 @@ function send(event) {
                 sendEventToForwarders(event);
             }
             catch (e) {
-                logDebug('Error sending event to mParticle servers.');
+                utilities.logDebug('Error sending event to mParticle servers.');
             }
         }
     }
@@ -305,7 +305,7 @@ function sendForwardingStats(forwarder, event) {
         forwardingStat;
 
     if (forwarder && forwarder.isVisible) {
-        xhr = utilities.createXHR(logDebug);
+        xhr = utilities.createXHR();
         forwardingStat = JSON.stringify({
             mid: forwarder.id,
             n: event.EventName,
@@ -324,7 +324,7 @@ function sendForwardingStats(forwarder, event) {
                 xhr.send(forwardingStat);
             }
             catch (e) {
-                logDebug('Error sending forwarding stats to mParticle servers.');
+                utilities.logDebug('Error sending forwarding stats to mParticle servers.');
             }
         }
     }
@@ -340,11 +340,11 @@ function applyToForwarders(functionName, functionArgs) {
                     var result = forwarders[i][functionName](forwarders[i], functionArgs);
 
                     if (result) {
-                        logDebug(result);
+                        utilities.logDebug(result);
                     }
                 }
                 catch(e) {
-                    logDebug(e);
+                    utilities.logDebug(e);
                 }
             }
         }
@@ -500,11 +500,11 @@ function sendEventToForwarders(event) {
             // Check user attribute filtering rules
             filterUserAttributes(clonedEvent, forwarders[i].userAttributeFilters);
 
-            logDebug('Sending message to forwarder: ' + forwarders[i].name);
+            utilities.logDebug('Sending message to forwarder: ' + forwarders[i].name);
             var result = forwarders[i].process(clonedEvent);
 
             if (result) {
-                logDebug(result);
+                utilities.logDebug(result);
             }
         }
     }
@@ -549,12 +549,12 @@ function parseResponse(responseText) {
     }
 
     try {
-        logDebug('Parsing response from server');
+        utilities.logDebug('Parsing response from server');
 
         settings = JSON.parse(responseText);
 
         if (settings && settings.Store) {
-            logDebug('Parsed store from response, updating local settings');
+            utilities.logDebug('Parsed store from response, updating local settings');
 
             if(serverSettings === null) {
                 serverSettings = {};
@@ -594,7 +594,7 @@ function parseResponse(responseText) {
         }
     }
     catch (e) {
-        logDebug("Error parsing JSON response from server: " + e.name);
+        utilities.logDebug("Error parsing JSON response from server: " + e.name);
     }
 }
 
@@ -885,7 +885,7 @@ function convertProductActionToEventType(productActionType) {
         case ProductActionType.ViewDetail:
             return CommerceEventType.ProductViewDetail;
         default:
-            logDebug('Could not convert product action type ' + productActionType + ' to event type');
+            utilities.logDebug('Could not convert product action type ' + productActionType + ' to event type');
             return null;
     }
 }
@@ -897,7 +897,7 @@ function convertPromotionActionToEventType(promotionActionType) {
         case PromotionActionType.PromotionView:
             return CommerceEventType.PromotionView;
         default:
-            logDebug('Could not convert promotion action type ' + promotionActionType + ' to event type');
+            utilities.logDebug('Could not convert promotion action type ' + promotionActionType + ' to event type');
             return null;
     }
 }
@@ -1091,7 +1091,7 @@ function expandCommerceEvent(event) {
 function createCommerceEventObject() {
     var baseEvent;
 
-    logDebug(InformationMessages.StartingLogCommerceEvent);
+    utilities.logDebug(messages.getInformationMessages('StartingLogCommerceEvent'));
 
     if (canLog()) {
         if (!sessionId) {
@@ -1108,7 +1108,7 @@ function createCommerceEventObject() {
         return baseEvent;
     }
     else {
-        logDebug(InformationMessages.AbandonLogEvent);
+        utilities.logDebug(messages.getInformationMessages('AbandonLogEvent'));
     }
 
     return null;
@@ -1165,7 +1165,7 @@ function logPurchaseEvent(transactionAttributes, product, attrs) {
 
 function logRefundEvent(transactionAttributes, product, attrs) {
     if (transactionAttributes == null || typeof transactionAttributes == 'undefined') {
-        logDebug(ErrorMessages.TransactionRequired);
+        utilities.logDebug(messages.getErrorMessages('TransactionRequired'));
         return;
     }
 
@@ -1228,13 +1228,13 @@ function logImpressionEvent(impression, attrs) {
 }
 
 function logOptOut() {
-    logDebug(InformationMessages.StartingLogOptOut);
+    utilities.logDebug(messages.getInformationMessages('StartingLogOptOut'));
 
     send(createEventObject(MessageType.OptOut, null, null, EventType.Other));
 }
 
 function logEvent(type, name, data, category, cflags) {
-    logDebug(InformationMessages.StartingLogEvent + ': ' + name);
+    utilities.logDebug(messages.getInformationMessages('StartingLogEvent') + ': ' + name);
 
     if (canLog()) {
         if (!sessionId) {
@@ -1258,12 +1258,12 @@ function logEvent(type, name, data, category, cflags) {
             );
     }
     else {
-        logDebug(InformationMessages.AbandonLogEvent);
+        utilities.logDebug(messages.getInformationMessages('AbandonLogEvent'));
     }
 }
 
 function logCommerceEvent(commerceEvent, attrs) {
-    logDebug(InformationMessages.StartingLogCommerceEvent);
+    utilities.logDebug(messages.getInformationMessages('StartingLogCommerceEvent'));
 
     if (canLog()) {
         if (!sessionId) {
@@ -1293,14 +1293,14 @@ function logCommerceEvent(commerceEvent, attrs) {
             );
     }
     else {
-        logDebug(InformationMessages.AbandonLogEvent);
+        utilities.logDebug(messages.getInformationMessages('AbandonLogEvent'));
     }
 }
 
 function logLogOutEvent() {
     var evt;
 
-    logDebug(InformationMessages.StartingLogEvent + ': logOut');
+    utilities.logDebug(messages.getInformationMessages('StartingLogEvent') + ': logOut');
 
     if (canLog()) {
         if (!sessionId) {
@@ -1325,20 +1325,8 @@ function logLogOutEvent() {
         return evt;
     }
     else {
-        logDebug(InformationMessages.AbandonLogEvent);
+        utilities.logDebug(messages.getInformationMessages('AbandonLogEvent'));
     }
-}
-
-function decoded(s) {
-    return decodeURIComponent(s.replace(pluses, ' '));
-}
-
-function converted(s) {
-    if (s.indexOf('"') === 0) {
-        s = s.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
-    }
-
-    return s;
 }
 
 function generateRandomValue(a) {
@@ -1369,12 +1357,6 @@ function generateUniqueId(a) {
             );
 }
 
-function logDebug(msg) {
-    if (mParticle.isDebug && window.console && window.console.log) {
-        window.console.log(msg);
-    }
-}
-
 function isEventType(type) {
     for (var prop in EventType) {
         if (EventType.hasOwnProperty(prop)) {
@@ -1387,7 +1369,7 @@ function isEventType(type) {
 }
 
 function mergeConfig(config) {
-    logDebug(InformationMessages.LoadingConfig);
+    utilities.logDebug(messages.getInformationMessages('LoadingConfig'));
 
     for (var prop in DefaultConfig) {
         if (DefaultConfig.hasOwnProperty(prop)) {
@@ -1424,7 +1406,7 @@ function addEventHandler(domEvent, selector, eventName, data, eventType) {
                 }
             };
 
-            logDebug('DOM event triggered, handling event');
+            utilities.logDebug('DOM event triggered, handling event');
 
             logEvent(MessageType.PageEvent,
                 typeof eventName === 'function' ? eventName(element) : eventName,
@@ -1449,7 +1431,7 @@ function addEventHandler(domEvent, selector, eventName, data, eventType) {
         i;
 
     if (!selector) {
-        logDebug('Can\'t bind event, selector is required');
+        utilities.logDebug('Can\'t bind event, selector is required');
         return;
     }
 
@@ -1462,7 +1444,7 @@ function addEventHandler(domEvent, selector, eventName, data, eventType) {
     }
 
     if (elements.length > 0) {
-        logDebug('Found ' +
+        utilities.logDebug('Found ' +
             elements.length +
             ' element' +
             (elements.length > 1 ? 's' : '') +
@@ -1483,7 +1465,7 @@ function addEventHandler(domEvent, selector, eventName, data, eventType) {
         }
     }
     else {
-        logDebug('No elements found');
+        utilities.logDebug('No elements found');
     }
 }
 
@@ -1527,17 +1509,17 @@ function createProduct(name,
     attributes) {
 
     if (!name) {
-        logDebug('Name is required when creating a product');
+        utilities.logDebug('Name is required when creating a product');
         return null;
     }
 
     if (!sku) {
-        logDebug('SKU is required when creating a product');
+        utilities.logDebug('SKU is required when creating a product');
         return null;
     }
 
     if (price !== price || price === null) {
-        logDebug('Price is required when creating a product');
+        utilities.logDebug('Price is required when creating a product');
         return null;
     }
 
@@ -1571,12 +1553,12 @@ function createPromotion(id, creative, name, position) {
 
 function createImpression(name, product) {
     if (!name) {
-        logDebug('Name is required when creating an impression.')
+        utilities.logDebug('Name is required when creating an impression.')
         return null;
     }
 
     if (!product) {
-        logDebug('Product is required when creating an impression.');
+        utilities.logDebug('Product is required when creating an impression.');
         return null;
     }
 
@@ -1594,7 +1576,7 @@ function createTransactionAttributes(id,
     tax) {
 
     if (id === null || typeof id == 'undefined') {
-        logDebug(ErrorMessages.TransactionIdRequired);
+        utilities.logDebug(messages.getErrorMessages('TransactionIdRequired'));
         return null;
     }
 
@@ -1620,11 +1602,11 @@ function callSetUserAttributeOnForwarders(key, value) {
                     var result = forwarders[i].setUserAttribute(key, value);
 
                     if (result) {
-                        logDebug(result);
+                        utilities.logDebug(result);
                     }
                 }
                 catch (e) {
-                    logDebug(e);
+                    utilities.logDebug(e);
                 }
             }
         }
@@ -1812,41 +1794,6 @@ var DefaultConfig = {
 
 var Config = {};
 
-var ErrorMessages = {
-    NoToken: 'A token must be specified.',
-    EventNameInvalidType: 'Event name must be a valid string value.',
-    EventDataInvalidType: 'Event data must be a valid object hash.',
-    LoggingDisabled: 'Event logging is currently disabled.',
-    CookieParseError: 'Could not parse cookie',
-    EventEmpty: 'Event object is null or undefined, cancelling send',
-    NoEventType: 'Event type must be specified.',
-    TransactionIdRequired: 'Transaction ID is required',
-    TransactionRequired: 'A transaction attributes object is required',
-    BadAttribute: 'Attribute value cannot be object or array'
-};
-
-var InformationMessages = {
-    CookieSearch: 'Searching for cookie',
-    CookieFound: 'Cookie found, parsing values',
-    CookieSet: 'Setting cookie',
-    SendBegin: 'Starting to send event',
-    SendWindowsPhone: 'Sending event to Windows Phone container',
-    SendIOS: 'Calling iOS path: ',
-    SendAndroid: 'Calling Android JS interface method: ',
-    SendHttp: 'Sending event to mParticle HTTP service',
-    StartingNewSession: 'Starting new Session',
-    StartingLogEvent: 'Starting to log event',
-    StartingLogOptOut: 'Starting to log user opt in/out',
-    StartingEndSession: 'Starting to end session',
-    StartingInitialization: 'Starting to initialize',
-    StartingLogCommerceEvent: 'Starting to log commerce event',
-    LoadingConfig: 'Loading configuration options',
-    AbandonLogEvent: 'Cannot log event, logging disabled or developer token not set',
-    AbandonStartSession: 'Cannot start session, logging disabled or developer token not set',
-    AbandonEndSession: 'Cannot end session, logging disabled or developer token not set',
-    NoSessionToEnd: 'Cannot end session, no active session found'
-};
-
 var NativeSdkPaths = {
     LogEvent: 'logEvent',
     SetUserIdentity: 'setUserIdentity',
@@ -1981,7 +1928,7 @@ var mParticle = {
         var token,
             config;
 
-        logDebug(InformationMessages.StartingInitialization);
+        utilities.logDebug(messages.getInformationMessages('StartingInitialization'));
 
         // Set configuration to default settings
         mergeConfig({});
@@ -2055,15 +2002,15 @@ var mParticle = {
         serverSettings = null;
         mergeConfig({});
         cookie.setCookie(
-                Config,
-                {
-                    sid: sessionId, ie: isEnabled, sa: sessionAttributes, 
-                    ua: userAttributes, ui: userIdentities, ss: serverSettings, dt: devToken,
-                    les: lastEventSent ? lastEventSent.getTime() : null,
-                    av: appVersion,
-                    cgid: clientId
-                }
-            );
+            Config,
+            {
+                sid: sessionId, ie: isEnabled, sa: sessionAttributes, 
+                ua: userAttributes, ui: userIdentities, ss: serverSettings, dt: devToken,
+                les: lastEventSent ? lastEventSent.getTime() : null,
+                av: appVersion,
+                cgid: clientId
+            }
+        );
 
         isInitialized = false;
     },
@@ -2081,15 +2028,15 @@ var mParticle = {
     setAppVersion: function(version) {
         appVersion = version;
         cookie.setCookie(
-                Config,
-                {
-                    sid: sessionId, ie: isEnabled, sa: sessionAttributes, 
-                    ua: userAttributes, ui: userIdentities, ss: serverSettings, dt: devToken,
-                    les: lastEventSent ? lastEventSent.getTime() : null,
-                    av: appVersion,
-                    cgid: clientId
-                }
-            );
+            Config,
+            {
+                sid: sessionId, ie: isEnabled, sa: sessionAttributes, 
+                ua: userAttributes, ui: userIdentities, ss: serverSettings, dt: devToken,
+                les: lastEventSent ? lastEventSent.getTime() : null,
+                av: appVersion,
+                cgid: clientId
+            }
+        );
     },
     getAppName: function() {
         return appName;
@@ -2114,7 +2061,7 @@ var mParticle = {
             };
         }
         else {
-            logDebug('Position latitude and/or longitude are invalid');
+            utilities.logDebug('Position latitude and/or longitude are invalid');
         }
     },
     setUserIdentity: function(id, type) {
@@ -2137,7 +2084,7 @@ var mParticle = {
                             var result = forwarders[i].setUserIdentity(id, type);
 
                             if (result) {
-                                logDebug(result);
+                                utilities.logDebug(result);
                             }
                         }
                     }
@@ -2192,7 +2139,7 @@ var mParticle = {
     startNewSession: function() {
         // Ends the current session if one is in progress
 
-        logDebug(InformationMessages.StartingNewSession);
+        utilities.logDebug(messages.getInformationMessages('StartingNewSession'));
 
         if (canLog()) {
             mParticle.endSession();
@@ -2205,16 +2152,16 @@ var mParticle = {
             logEvent(MessageType.SessionStart);
         }
         else {
-            logDebug(InformationMessages.AbandonStartSession);
+            utilities.logDebug(messages.getInformationMessages('AbandonStartSession'));
         }
     },
     endSession: function() {
-        logDebug(InformationMessages.StartingEndSession);
+        utilities.logDebug(messages.getInformationMessages('StartingEndSession'));
 
         // Ends the current session.
         if (canLog()) {
             if (!sessionId) {
-                logDebug(InformationMessages.NoSessionToEnd);
+                utilities.logDebug(messages.getInformationMessages('NoSessionToEnd'));
                 return;
             }
 
@@ -2224,12 +2171,12 @@ var mParticle = {
             sessionAttributes = {};
         }
         else {
-            logDebug(InformationMessages.AbandonEndSession);
+            utilities.logDebug(messages.getInformationMessages('AbandonEndSession'));
         }
     },
     logEvent: function(eventName, eventType, eventInfo, customFlags) {
         if (typeof (eventName) != 'string') {
-            logDebug(ErrorMessages.EventNameInvalidType);
+            utilities.logDebug(messages.getErrorMessages('EventNameInvalidType'));
             return;
         }
 
@@ -2238,12 +2185,12 @@ var mParticle = {
         }
 
         if (!isEventType(eventType)) {
-            logDebug('Invalid event type: ' + eventType + ', must be one of: \n' + JSON.stringify(EventType));
+            utilities.logDebug('Invalid event type: ' + eventType + ', must be one of: \n' + JSON.stringify(EventType));
             return;
         }
 
         if (!canLog()) {
-            logDebug(ErrorMessages.LoggingDisabled);
+            utilities.logDebug(messages.getErrorMessages('LoggingDisabled'));
             return;
         }
 
@@ -2475,7 +2422,7 @@ var mParticle = {
     },
     logLTVIncrease: function (amount, eventName, attributes) {
         if(amount == null || typeof amount == "undefined") {
-            logDebug('A valid amount must be passed to logLTVIncrease.');
+            utilities.logDebug('A valid amount must be passed to logLTVIncrease.');
             return;
         }
         
@@ -2520,7 +2467,7 @@ var mParticle = {
         // Example: mParticle.setUserAttribute('email', 'tbreffni@mparticle.com');
         if (canLog()) {
             if(!isValidAttributeValue(value)) {
-                logDebug(ErrorMessages.BadAttribute);
+                utilities.logDebug(messages.getErrorMessages('BadAttribute'));
                 return;
             }
 
@@ -2674,7 +2621,7 @@ var mParticle = {
         // Example: mParticle.setSessionAttribute('location', '33431');
         if (canLog()) {
             if(!isValidAttributeValue(value)) {
-                logDebug(ErrorMessages.BadAttribute);
+                utilities.logDebug(messages.getErrorMessages('BadAttribute'));
                 return;
             }
 
@@ -2721,7 +2668,7 @@ var mParticle = {
                     var result = forwarders[i].setOptOut(isOptingOut);
 
                     if (result) {
-                        logDebug(result);
+                        utilities.logDebug(result);
                     }
                 }
             }

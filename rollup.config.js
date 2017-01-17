@@ -6,7 +6,7 @@ import uglify from 'rollup-plugin-uglify';
 
 export default {
   entry: 'src/main.js',
-  dest: 'build/main.min.js',
+  dest: 'mparticle.js',
   format: 'iife',
   sourceMap: 'inline',
   plugins: [

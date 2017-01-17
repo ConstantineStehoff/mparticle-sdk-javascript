@@ -1,3 +1,6 @@
+import {utilities} from './utilities.js';
+import {messages} from './messages.js';
+
 class Cookie{
 
 	constructor() {
@@ -9,25 +12,25 @@ class Cookie{
         let cookies = window.document.cookie.split('; ');
         let result = this.config.CookieName ? undefined : {};
 
-        logDebug(InformationMessages.CookieSearch);
+        utilities.logDebug(messages.getInformationMessages('CookieSearch'));
 
         for (let i = 0; i < cookies.length; i++) {
-            let parts = cookies[i].split('=');
-            let name = decoded(parts.shift());
-            let cookie = decoded(parts.join('='));
+            let parts = cookies[i].split('=');``
+            let name = utilities.decoded(parts.shift());
+            let cookie = utilities.decoded(parts.join('='));
 
             if (this.config.CookieName && this.config.CookieName === name) {
-                result = converted(cookie);
+                result = utilities.converted(cookie);
                 break;
             }
 
             if (!this.config.CookieName) {
-                result[name] = converted(cookie);
+                result[name] = utilities.converted(cookie);
             }
         }
 
         if (result) {
-            logDebug(InformationMessages.CookieFound);
+            utilities.logDebug(messages.getInformationMessages('CookieFound'));
 
             try {
                 let obj = JSON.parse(result);
@@ -55,7 +58,7 @@ class Cookie{
                 }
             }
             catch (e) {
-                logDebug(ErrorMessages.CookieParseError);
+                utilities.logDebug(messages.getErrorMessages('CookieParseError'));
             }
         }
     }
@@ -68,7 +71,7 @@ class Cookie{
                 (this.config.CookieExpiration * 24 * 60 * 60 * 1000)).toGMTString();
         let domain = this.config.CookieDomain ? ';domain=' + this.config.CookieDomain : '';
 
-        logDebug(InformationMessages.CookieSet);
+        utilities.logDebug(messages.getInformationMessages('CookieSet'));
 
         window.document.cookie =
             encodeURIComponent(this.config.CookieName) + '=' + encodeURIComponent(JSON.stringify(this.value)) +

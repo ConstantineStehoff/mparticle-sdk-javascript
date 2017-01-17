@@ -1,6 +1,6 @@
 class Utilities {
 	constructor() {
-		
+		this.pluses = /\+/g;
 	}
 
 	createXHR(cb, logDebug) {
@@ -41,6 +41,25 @@ class Utilities {
         return result !== -1;
     }
 
+    converted(s) {
+        if (s.indexOf('"') === 0) {
+            s = s.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+        }
+
+        return s;
+    }
+
+    decoded(s) {
+
+        return decodeURIComponent(s.replace(this.pluses, ' '));
+    }
+
+    logDebug(msg) {
+        if (mParticle.isDebug && window.console && window.console.log) {
+            window.console.log(msg);
+        }
+    }
+
     isUIWebView(navigator) {
         return /(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/i.test(navigator.userAgent);
     }
@@ -48,7 +67,7 @@ class Utilities {
     isWebViewEmbedded(navigator) {
         return (window.external && typeof (window.external.Notify) === 'unknown')
             || window.mParticleAndroid
-            || isUIWebView(navigator)
+            || this.isUIWebView(navigator)
             || window.mParticle.isIOS;
     }
 
